@@ -1,0 +1,47 @@
+<html>
+  <head>
+    <title></title>
+    <script src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
+  </head>
+  <body>
+    <label for="fileInput">Choose File to OCR:</label>
+    <input type="file" id="fileInput" name="fileInput" accept="image/*" />
+    <br />
+    <br />
+    <div id="document-content">
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        var fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', handleInputChange);
+      });
+
+window.Tesseract = Tesseract.create({
+    langPath: window.location.href.replace(/(.*?)[^/]*\..*$/,'$1') + '/lang/',
+})
+
+function handleInputChange(event){
+  var input = event.target;
+  var file = input.files[0];
+  console.log(file);
+  Tesseract.recognize(file, {
+      lang: 'OCRB',
+    })
+    .progress(function(message){
+      console.log(message);
+    })
+    .then(function(result){
+      var contentArea = document.getElementById('document-content');
+      // just take the last two lines (super hacky)
+      console.log(result);
+      len = result.lines.length
+      contentArea.innerText = result.lines[len-2].text + "\n" + result.lines[len-1].text;
+    })
+    .catch(function(err){
+      console.error(err);
+    });
+    }
+  </script>
+</body>
+</html>

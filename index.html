@@ -4,7 +4,7 @@
     <script src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
   </head>
   <body>
-    <label for="fileInput">Choose File to OCR:</label>
+    <label for="fileInput">Choose ID to OCR:</label>
     <input type="file" id="fileInput" name="fileInput" accept="image/*" />
     <br />
     <br />
@@ -18,7 +18,7 @@
       });
 
 window.Tesseract = Tesseract.create({
-    langPath: window.location.href.replace(/(.*?)[^/]*\..*$/,'$1') + '/lang/',
+    langPath: 'https://exteris.github.io/tesseract-mrz/lang/',
 })
 
 function handleInputChange(event){

@@ -10,6 +10,8 @@
     <br />
     <div id="document-content">
     </div>
+    <div id="document-check">
+    </div>
 
     <script>
       document.addEventListener('DOMContentLoaded', function(){
@@ -21,12 +23,54 @@ window.Tesseract = Tesseract.create({
     langPath: 'https://exteris.github.io/tesseract-mrz/lang/',
 })
 
+function val(char) {
+  switch(true) {
+    case (char == '<'):
+      return 0;
+    case (/[0-9]/.test(char)):
+      return char.charCodeAt(0) - 48;
+    case (/[A-Z]/.test(char)):
+      return char.charCodeAt(0) - 65 + 10;
+    default:
+      console.log("error parsing character '" + char + "'");
+      return 0;
+    }
+}
+function mrz_checksum(str) {
+  str = str.toUpperCase().replace(/\s*/, '').replace(/(\r\n|\n|\r)/gm, '').split('');
+  values = str.map(val);
+  return values.map(function(v, i) {
+    switch(i % 3) {
+      case (0):
+        return v * 7;
+      case (1):
+        return v * 3;
+      case (2):
+        return v;
+      }
+  }).reduce(function(pv, cv) { return pv + cv; }, 0) % 10;
+}
+
+/* Check last line of 2-line MRZ code */
+/* See https://github.com/samrids/Passport-MRZ-Check/blob/master/about.txt */
+/* TODO: allow check digit of < if 29-42 are < */
+function mrz2_check(mrz) {
+  check1 = (mrz[9] == mrz_checksum(mrz.substr(0,9)));
+  check2 = (mrz[19] == mrz_checksum(mrz.substr(13,6)));
+  check3 = (mrz[27] == mrz_checksum(mrz.substr(21,6)));
+  check4 = (mrz[42] == mrz_checksum(mrz.substr(28,13)));
+  check5 = (mrz[43] == mrz_checksum(mrz.substr(0,10) + mrz.substr(13,7) + mrz.substr(21,22)));
+  return check1 && check2 && check3 && check4 && check5;
+}
+
+
 function handleInputChange(event){
   var input = event.target;
   var file = input.files[0];
   console.log(file);
   Tesseract.recognize(file, {
       lang: 'OCRB',
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<'
     })
     .progress(function(message){
       console.log(message);
@@ -35,8 +79,19 @@ function handleInputChange(event){
       var contentArea = document.getElementById('document-content');
       // just take the last two lines (super hacky)
       console.log(result);
-      len = result.lines.length
-      contentArea.innerText = result.lines[len-2].text + "\n" + result.lines[len-1].text;
+      len = result.lines.length;
+      // do some formatting fixes
+      mrz = result.lines[len-2].text + "\n" + result.lines[len-1].text;
+      mrz = mrz.replace(/ /, '');
+      contentArea.innerText = mrz;
+
+      // calculate the checksum
+      correct = mrz2_check(result.lines[len-1].text);
+
+
+      var checkArea = document.getElementById('document-check');
+      checkArea.innerText = "Checksum: " + correct;
+
     })
     .catch(function(err){
       console.error(err);

@@ -12,6 +12,9 @@
     </div>
     <div id="document-check">
     </div>
+    <div id="document-display">
+      <img id="document" src="#" style="width: 50%;" />
+    </div>
 
     <script>
       document.addEventListener('DOMContentLoaded', function(){
@@ -68,6 +71,12 @@ function handleInputChange(event){
   var input = event.target;
   var file = input.files[0];
   console.log(file);
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var displayArea = document.getElementById('document');
+    displayArea.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
   Tesseract.recognize(file, {
       lang: 'OCRB',
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<'
@@ -77,16 +86,17 @@ function handleInputChange(event){
     })
     .then(function(result){
       var contentArea = document.getElementById('document-content');
-      // just take the last two lines (super hacky)
-      console.log(result);
-      len = result.lines.length;
-      // do some formatting fixes
-      mrz = result.lines[len-2].text + "\n" + result.lines[len-1].text;
-      mrz = mrz.replace(/ /, '');
+      // Select lines of length 44 starting with P>
+      console.log(result.lines.map(line => line.text.trim().length))
+      selected = result.lines.filter(line => line.text.trim().length == 44)
+      if (selected.length > 2) {
+        selected = selected.slice(selected.length-2,selected.length);
+      }
+      mrz = selected.map(line => line.text).join("\n").replace(/ /, '')
       contentArea.innerText = mrz;
 
       // calculate the checksum
-      correct = mrz2_check(result.lines[len-1].text);
+      correct = mrz2_check(selected[1].text);
 
 
       var checkArea = document.getElementById('document-check');
